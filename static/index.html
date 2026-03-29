@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FaB Card Recall Trainer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ── Loading Screen ─────────────────────────────────────── -->
+<div id="loading-screen" class="loading-screen">
+  <div class="loading-content">
+    <div class="loading-sword">⚔</div>
+    <h1>FaB Card Recall</h1>
+    <div class="spinner"></div>
+    <p id="loading-msg">Connecting...</p>
+    <small>Card data (~15 MB) is fetched from GitHub on first load.</small>
+  </div>
+</div>
+
+<!-- ── Main App ───────────────────────────────────────────── -->
+<div id="app" class="app" hidden>
+
+  <!-- Sidebar backdrop (mobile) -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop"></div>
+
+  <!-- ── Sidebar ─────────────────────────────────────────── -->
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-head">
+      <span class="sidebar-title">⚔ Filters</span>
+      <button id="close-sidebar" class="btn-icon" title="Close">✕</button>
+    </div>
+
+    <div class="filter-summary">
+      <span class="pool-label">Pool: <strong id="pool-count">--</strong> cards</span>
+      <button id="clear-filters" class="btn-clear">Clear All</button>
+    </div>
+
+    <div class="filter-sections">
+
+      <!-- Primary Type -->
+      <div class="filter-group" data-group="primaryType">
+        <div class="fg-header">
+          <span>Primary Type</span>
+          <span class="fg-badge" id="badge-primaryType"></span>
+          <span class="fg-chevron">▾</span>
+        </div>
+        <div class="fg-body">
+          <div class="cb-grid" id="fg-primaryType">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Class -->
+      <div class="filter-group" data-group="classType">
+        <div class="fg-header">
+          <span>Class</span>
+          <span class="fg-badge" id="badge-classType"></span>
+          <span class="fg-chevron">▾</span>
+        </div>
+        <div class="fg-body">
+          <div class="cb-grid" id="fg-classType">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Talent -->
+      <div class="filter-group collapsed" data-group="talentType">
+        <div class="fg-header">
+          <span>Talent</span>
+          <span class="fg-badge" id="badge-talentType"></span>
+          <span class="fg-chevron">▾</span>
+        </div>
+        <div class="fg-body">
+          <div class="cb-grid" id="fg-talentType">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Subtype -->
+      <div class="filter-group collapsed" data-group="subtype">
+        <div class="fg-header">
+          <span>Subtype</span>
+          <span class="fg-badge" id="badge-subtype"></span>
+          <span class="fg-chevron">▾</span>
+        </div>
+        <div class="fg-body">
+          <div class="cb-grid" id="fg-subtype">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Pitch -->
+      <div class="filter-group" data-group="pitch">
+        <div class="fg-header">
+          <span>Pitch</span>
+          <span class="fg-badge" id="badge-pitch"></span>
+          <span class="fg-chevron">▾</span>
+        </div>
+        <div class="fg-body">
+          <div class="pitch-row" id="fg-pitch">
+            <button class="pitch-btn red"    data-pitch="1">Red · 1</button>
+            <button class="pitch-btn yellow" data-pitch="2">Yellow · 2</button>
+            <button class="pitch-btn blue"   data-pitch="3">Blue · 3</button>
+            <button class="pitch-btn none"   data-pitch="null">No Pitch</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rarity -->
+      <div class="filter-group" data-group="rarity">
+        <div class="fg-header">
+          <span>Rarity</span>
+          <span class="fg-badge" id="badge-rarity"></span>
+          <span class="fg-chevron">▾</span>
+        </div>
+        <div class="fg-body">
+          <div class="cb-grid" id="fg-rarity">
+            <!-- Populated by JS from API -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Set -->
+      <div class="filter-group collapsed" data-group="sets">
+        <div class="fg-header">
+          <span>Set</span>
+          <span class="fg-badge" id="badge-sets"></span>
+          <span class="fg-chevron">▾</span>
+        </div>
+        <div class="fg-body">
+          <input type="text" id="set-search" class="fg-search" placeholder="Search sets…">
+          <div class="cb-scroll" id="fg-sets">
+            <!-- Populated by JS from API -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Keywords -->
+      <div class="filter-group collapsed" data-group="keywords">
+        <div class="fg-header">
+          <span>Keywords</span>
+          <span class="fg-badge" id="badge-keywords"></span>
+          <span class="fg-chevron">▾</span>
+        </div>
+        <div class="fg-body">
+          <input type="text" id="kw-search" class="fg-search" placeholder="Search keywords…">
+          <div class="cb-scroll" id="fg-keywords">
+            <!-- Populated by JS from API -->
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /filter-sections -->
+
+    <!-- ── Deck Import ────────────────────────────────────── -->
+    <div class="deck-import" id="deck-import">
+      <div class="di-header">
+        <span>⚔ Deck Mode</span>
+        <button id="deck-clear-btn" class="btn-clear" hidden>Clear</button>
+      </div>
+      <div class="di-body">
+        <div id="deck-info" class="deck-info" hidden>
+          <div class="deck-info-name" id="deck-info-name">—</div>
+          <div class="deck-info-meta" id="deck-info-meta">—</div>
+        </div>
+        <input
+          id="deck-url-input"
+          class="deck-url-input"
+          type="text"
+          placeholder="Paste Fabrary deck URL…"
+          spellcheck="false"
+        >
+        <button id="deck-load-btn" class="btn-deck-load">Load Deck</button>
+        <div id="deck-error" class="deck-error" hidden></div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Main Content ─────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- Top bar -->
+    <div class="topbar">
+      <button id="open-sidebar" class="btn-menu">☰ Filters</button>
+
+      <div class="session-stats" id="session-stats">
+        <span class="ss-item">Cards <strong id="st-total">0</strong></span>
+        <span class="ss-item correct">✓ <strong id="st-correct">0</strong></span>
+        <span class="ss-item missed">✗ <strong id="st-missed">0</strong></span>
+        <span class="ss-item">Streak <strong id="st-streak">0</strong></span>
+      </div>
+
+    </div>
+
+    <!-- Card area -->
+    <div class="card-area">
+
+      <!-- Empty / start state -->
+      <div id="empty-state" class="empty-state">
+        <div class="empty-icon">⚔</div>
+        <h2>FaB Card Recall Trainer</h2>
+        <p>Use the filters to define your study pool, then draw a card.</p>
+        <p class="pool-hint">Ready: <span id="empty-pool-count">--</span> cards</p>
+        <button id="draw-first-btn" class="btn-primary btn-lg">Draw First Card</button>
+      </div>
+
+      <!-- Card display -->
+      <div id="card-view" class="card-view" hidden>
+
+        <div class="card-frame-wrap">
+          <!-- Spinner shown while image is loading, same shape as card -->
+          <div id="card-loading" class="card-placeholder" hidden>
+            <div class="spinner"></div>
+            <p>Drawing card…</p>
+          </div>
+          <!-- Card frame, hidden until image is ready -->
+          <div class="card-frame" id="card-frame" hidden>
+            <img id="card-img" class="card-img" src="" alt="Card image">
+            <div id="card-overlay" class="card-overlay">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 450 629" preserveAspectRatio="none" class="overlay-svg">
+              <defs>
+                <linearGradient id="ruleGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%"   stop-color="#a07828" stop-opacity="0"/>
+                  <stop offset="20%"  stop-color="#a07828" stop-opacity="0.55"/>
+                  <stop offset="80%"  stop-color="#a07828" stop-opacity="0.55"/>
+                  <stop offset="100%" stop-color="#a07828" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+
+              <!-- Pitch area (color strip + left pillar) — hidden when Pitch is revealed -->
+              <g id="ovl-pitch">
+                <rect x="0" y="0" width="450" height="36" fill="#0c1018"/>
+                <rect x="0" y="36" width="78" height="54" fill="#0c1018"/>
+                <circle cx="40" cy="46" r="26" fill="none" stroke="#7a5c1e" stroke-width="1" opacity="0.5"/>
+                <text x="40" y="50" text-anchor="middle" font-family="Georgia,serif" font-size="9" font-weight="bold" fill="#a07828" opacity="0.45">PITCH</text>
+                <path d="M10,10 L10,24 L24,10"   fill="none" stroke="#c8882a" stroke-width="1.5" opacity="0.5" stroke-linejoin="round"/>
+                <path d="M440,10 L440,24 L426,10" fill="none" stroke="#c8882a" stroke-width="1.5" opacity="0.5" stroke-linejoin="round"/>
+              </g>
+
+              <!-- Name bar (center band between pitch and cost) — hidden when Name is revealed -->
+              <g id="ovl-name-bar">
+                <rect x="78" y="36" width="294" height="54" fill="#0c1018"/>
+              </g>
+
+              <!-- Right pillar (COST) — hidden when Cost is revealed -->
+              <g id="ovl-cost">
+                <rect x="372" y="36" width="78" height="54" fill="#0c1018"/>
+                <circle cx="410" cy="46" r="26" fill="none" stroke="#7a5c1e" stroke-width="1" opacity="0.5"/>
+                <text x="410" y="50" text-anchor="middle" font-family="Georgia,serif" font-size="10" font-weight="bold" fill="#a07828" opacity="0.45">COST</text>
+              </g>
+
+              <!-- Text body (above the bottom row) — hidden when Text is revealed -->
+              <g id="ovl-bottom-text">
+                <rect x="0" y="400" width="450" height="155" fill="#0c1018"/>
+                <rect x="0" y="400" width="450" height="1" fill="url(#ruleGrad)"/>
+              </g>
+
+              <!-- Bottom row: ATK | Type | DEF — three non-overlapping tiles, each revealed independently -->
+
+              <!-- Bottom-left corner (ATK/Health) — hidden when Power or Health is revealed -->
+              <g id="ovl-bottom-atk">
+                <rect x="0" y="535" width="100" height="94" fill="#0c1018"/>
+                <rect x="28" y="555" width="58" height="30" rx="4" fill="none" stroke="#7a5c1e" stroke-width="1" opacity="0.5"/>
+                <text x="57" y="575" text-anchor="middle" font-family="Georgia,serif" font-size="13" font-weight="bold" fill="#a07828" opacity="0.4">ATK</text>
+                <path d="M10,619 L10,605 L24,619" fill="none" stroke="#c8882a" stroke-width="1.5" opacity="0.5" stroke-linejoin="round"/>
+              </g>
+
+              <!-- Bottom-center (Type) — hidden when Type is revealed -->
+              <g id="ovl-bottom-type">
+                <rect x="100" y="535" width="250" height="94" fill="#0c1018"/>
+                <text x="225" y="616" text-anchor="middle" font-family="Georgia,'Times New Roman',serif" font-size="9.5" fill="#a07828" opacity="0.45" letter-spacing="5.5">FLESH AND BLOOD</text>
+              </g>
+
+              <!-- Bottom-right corner (DEF/Intelligence) — hidden when Defense or Intelligence is revealed -->
+              <g id="ovl-bottom-def">
+                <rect x="350" y="535" width="100" height="94" fill="#0c1018"/>
+                <rect x="364" y="555" width="58" height="30" rx="4" fill="none" stroke="#7a5c1e" stroke-width="1" opacity="0.5"/>
+                <text x="393" y="575" text-anchor="middle" font-family="Georgia,serif" font-size="13" font-weight="bold" fill="#a07828" opacity="0.4">DEF</text>
+                <path d="M440,619 L440,605 L426,619" fill="none" stroke="#c8882a" stroke-width="1.5" opacity="0.5" stroke-linejoin="round"/>
+              </g>
+
+            </svg>
+          </div>
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls" id="controls">
+          <div id="ctrl-pre" class="ctrl-row" hidden>
+            <button id="btn-reveal" class="btn-reveal">Reveal ▼</button>
+            <button id="btn-skip"   class="btn-skip">Skip →</button>
+          </div>
+          <div id="ctrl-post" class="ctrl-row" hidden>
+            <button id="btn-knew"  class="btn-knew">✓ Knew It</button>
+            <button id="btn-miss"  class="btn-miss">✗ Missed</button>
+            <button id="btn-next"  class="btn-next">Next Card →</button>
+          </div>
+        </div>
+
+        <!-- Stats panel: shown before reveal (?s) and after reveal (values) -->
+        <div id="stats-panel" class="stats-panel" hidden></div>
+
+      </div><!-- /card-view -->
+
+    </div><!-- /card-area -->
+
+    <!-- Keyboard hints -->
+    <div class="kb-hints">
+      <span><kbd>Space</kbd> Reveal</span>
+      <span><kbd>→</kbd> Next</span>
+      <span><kbd>1</kbd> Knew It</span>
+      <span><kbd>2</kbd> Missed</span>
+    </div>
+
+  </main>
+</div><!-- /app -->
+
+<script src="app.js"></script>
+</body>
+</html>
