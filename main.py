@@ -512,4 +512,4 @@ async def api_deck(url: str = Query(..., description="Fabrary deck URL")):
 
 
 # Static files mounted last so API routes take precedence
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
+app.mount("/", StaticFiles(directory="docs", html=True), name="docs")
