@@ -343,6 +343,7 @@ strong { font-weight: 600; }
 .ss-item strong { color: var(--text); }
 .ss-item.correct strong { color: var(--green); }
 .ss-item.missed  strong { color: var(--red);   }
+.ss-item.queue   strong { color: var(--gold);  }
 
 
 /* ── Card Area ────────────────────────────────────────────── */
@@ -379,6 +380,31 @@ strong { font-weight: 600; }
 .empty-state p { color: var(--text-2); }
 .pool-hint { font-size: 13px; color: var(--text-muted); }
 .pool-hint span { color: var(--text-2); font-weight: 600; }
+
+.session-size-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.session-size-label {
+  font-size: 13px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.session-size-input {
+  width: 90px;
+  padding: 7px 10px;
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.session-size-input:focus { border-color: var(--gold); }
+.session-size-input::placeholder { color: var(--text-muted); }
 
 .btn-primary {
   background: var(--gold);

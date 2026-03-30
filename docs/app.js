@@ -285,6 +285,12 @@ let poolCountTimer = null;
 let deckMode = false;
 let deckCards = [];
 
+// Session queue mode
+let sessionSize = 0;          // 0 = unlimited
+let sessionQueue = [];        // ordered queue of cards for bounded session
+let sessionStarted = false;
+let sessionSnapshot = { total: 0, correct: 0, missed: 0 }; // stats at session start
+
 // ── DOM refs ──────────────────────────────────────────────────────────────────
 
 const $ = id => document.getElementById(id);
@@ -327,6 +333,14 @@ const els = {
   stStreak:        $('st-streak'),
 
   drawFirstBtn:    $('draw-first-btn'),
+
+  sessionSizeInput: $('session-size-input'),
+  stQueueWrap:     $('st-queue-wrap'),
+  stQueue:         $('st-queue'),
+  emptyIcon:       $('empty-icon'),
+  emptyTitle:      $('empty-title'),
+  emptyDesc:       $('empty-desc'),
+  emptyPoolHint:   $('empty-pool-hint'),
 
   deckUrlInput:    $('deck-url-input'),
   deckLoadBtn:     $('deck-load-btn'),
@@ -491,6 +505,7 @@ function setupPitchButtons() {
 
 function clearAllFilters() {
   for (const key of Object.keys(filters)) filters[key].clear();
+  resetSession();
 
   document.querySelectorAll('.cb-item input[type=checkbox]').forEach(cb => {
     cb.checked = false;
@@ -503,8 +518,39 @@ function clearAllFilters() {
 
 // ── Card lifecycle ────────────────────────────────────────────────────────────
 
+function _shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 async function drawCard() {
   if (phase === 'loading') return;
+
+  // ── Session queue mode ──────────────────────────────────────
+  if (sessionSize > 0) {
+    // Build queue on first draw of a session
+    if (!sessionStarted) {
+      const pool = deckMode ? [...deckCards] : applyFilters();
+      if (!pool.length) {
+        showToast('No cards match the current filters. Try broadening your selection.');
+        return;
+      }
+      const n = Math.min(sessionSize, pool.length);
+      sessionQueue = _shuffle(pool.slice()).slice(0, n);
+      sessionStarted = true;
+      sessionSnapshot = { total: session.total, correct: session.correct, missed: session.missed };
+    }
+
+    // Session complete when queue is drained
+    if (sessionQueue.length === 0) {
+      showSessionComplete();
+      return;
+    }
+  }
+
   phase = 'loading';
 
   els.emptyState.hidden  = true;
@@ -516,7 +562,10 @@ async function drawCard() {
   els.statsPanel.hidden  = true;
 
   let data;
-  if (deckMode && deckCards.length > 0) {
+  if (sessionSize > 0) {
+    data = sessionQueue.shift();
+    updateQueueDisplay();
+  } else if (deckMode && deckCards.length > 0) {
     data = deckCards[Math.floor(Math.random() * deckCards.length)];
   } else {
     const pool = applyFilters();
@@ -568,6 +617,7 @@ async function loadDeck() {
     }
 
     deckMode = true;
+    resetSession();
     const totalCards = deckCards.length;
     els.deckInfo.hidden          = false;
     els.deckInfoName.textContent = deck.name || 'Unnamed Deck';
@@ -592,6 +642,7 @@ async function loadDeck() {
 function clearDeck() {
   deckMode  = false;
   deckCards = [];
+  resetSession();
   els.deckInfo.hidden     = true;
   els.deckClearBtn.hidden = true;
   els.deckUrlInput.value  = '';
@@ -650,12 +701,63 @@ function gradeCard(knew) {
   } else {
     session.missed++;
     session.streak = 0;
+    // Push missed card to back of the session queue so it repeats
+    if (sessionSize > 0) {
+      sessionQueue.push(currentCard);
+      updateQueueDisplay();
+    }
   }
   updateSessionStats();
   drawCard();
 }
 
 function skipCard() { drawCard(); }
+
+// ── Session queue helpers ─────────────────────────────────────────────────────
+
+function resetSession() {
+  sessionQueue    = [];
+  sessionStarted  = false;
+  els.stQueueWrap.hidden = true;
+}
+
+function updateQueueDisplay() {
+  if (sessionSize > 0 && sessionStarted) {
+    els.stQueueWrap.hidden = false;
+    els.stQueue.textContent = sessionQueue.length;
+  } else {
+    els.stQueueWrap.hidden = true;
+  }
+}
+
+function showSessionComplete() {
+  phase = 'idle';
+  els.cardView.hidden  = false;  // keep hidden so empty state shows cleanly
+  els.cardView.hidden  = true;
+  els.emptyState.hidden = false;
+
+  const roundTotal   = session.total   - sessionSnapshot.total;
+  const roundCorrect = session.correct - sessionSnapshot.correct;
+  const roundMissed  = session.missed  - sessionSnapshot.missed;
+  els.emptyIcon.textContent  = '🏆';
+  els.emptyTitle.textContent = 'Session Complete!';
+  els.emptyDesc.textContent  =
+    `${roundTotal} card${roundTotal !== 1 ? 's' : ''} reviewed — ` +
+    `${roundCorrect} known, ${roundMissed} missed.`;
+  els.emptyPoolHint.hidden    = true;
+  els.drawFirstBtn.textContent = 'New Session';
+
+  resetSession();
+}
+
+function resetEmptyState() {
+  els.emptyIcon.textContent    = '⚔';
+  els.emptyTitle.textContent   = 'FaB Card Recall Trainer';
+  els.emptyDesc.textContent    = 'Use the filters to define your study pool, then draw a card.';
+  els.emptyPoolHint.hidden     = false;
+  els.drawFirstBtn.textContent = 'Draw First Card';
+  updatePoolCount();
+}
 
 // ── Overlay ───────────────────────────────────────────────────────────────────
 
@@ -766,7 +868,14 @@ function setupEvents() {
   els.deckClearBtn.addEventListener('click', clearDeck);
   els.deckUrlInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadDeck(); });
 
-  els.drawFirstBtn.addEventListener('click', drawCard);
+  els.drawFirstBtn.addEventListener('click', () => {
+    // Read session size at draw time so it reflects current input
+    const raw = parseInt(els.sessionSizeInput.value, 10);
+    sessionSize = (!isNaN(raw) && raw > 0) ? raw : 0;
+    // Restore normal empty state labels if coming from session complete screen
+    if (els.emptyTitle.textContent !== 'FaB Card Recall Trainer') resetEmptyState();
+    drawCard();
+  });
   els.btnReveal.addEventListener('click', revealCard);
   els.btnSkip.addEventListener('click', skipCard);
   els.btnKnew.addEventListener('click', () => gradeCard(true));
@@ -778,7 +887,7 @@ function setupEvents() {
     if (e.code === 'Space') {
       e.preventDefault();
       if (phase === 'hidden') revealCard();
-      else if (phase === 'idle') drawCard();
+      else if (phase === 'idle') els.drawFirstBtn.click();
     }
     if (e.code === 'ArrowRight' && phase === 'revealed') {
       e.preventDefault();

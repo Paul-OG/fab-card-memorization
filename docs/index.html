@@ -195,6 +195,7 @@
         <span class="ss-item correct">✓ <strong id="st-correct">0</strong></span>
         <span class="ss-item missed">✗ <strong id="st-missed">0</strong></span>
         <span class="ss-item">Streak <strong id="st-streak">0</strong></span>
+        <span class="ss-item queue" id="st-queue-wrap" hidden>Queue <strong id="st-queue">0</strong></span>
       </div>
 
       <a href="https://buymeacoffee.com/paulog" target="_blank" rel="noopener" class="btn-bmac">☕ Support</a>
@@ -206,10 +207,14 @@
 
       <!-- Empty / start state -->
       <div id="empty-state" class="empty-state">
-        <div class="empty-icon">⚔</div>
-        <h2>FaB Card Recall Trainer</h2>
-        <p>Use the filters to define your study pool, then draw a card.</p>
-        <p class="pool-hint">Ready: <span id="empty-pool-count">--</span> cards</p>
+        <div class="empty-icon" id="empty-icon">⚔</div>
+        <h2 id="empty-title">FaB Card Recall Trainer</h2>
+        <p id="empty-desc">Use the filters to define your study pool, then draw a card.</p>
+        <p class="pool-hint" id="empty-pool-hint">Ready: <span id="empty-pool-count">--</span> cards</p>
+        <div class="session-size-wrap">
+          <label for="session-size-input" class="session-size-label">Session size</label>
+          <input id="session-size-input" type="number" min="1" class="session-size-input" placeholder="All cards">
+        </div>
         <button id="draw-first-btn" class="btn-primary btn-lg">Draw First Card</button>
       </div>
 
